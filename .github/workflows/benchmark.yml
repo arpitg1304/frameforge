@@ -1,0 +1,68 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "frameforge/benchmark/**"
+      - "benchmarks/**"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,benchmark]"
+
+      - name: Generate synthetic test video
+        run: |
+          python -c "
+          import av, numpy as np
+          c = av.open('sample.mp4', mode='w')
+          s = c.add_stream('h264', rate=30)
+          s.width, s.height, s.pix_fmt = 640, 480, 'yuv420p'
+          for i in range(300):
+              f = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+              for p in s.encode(av.VideoFrame.from_ndarray(f, format='rgb24')):
+                  c.mux(p)
+          for p in s.encode(): c.mux(p)
+          c.close()
+          "
+
+      - name: Run benchmarks
+        run: |
+          python -m frameforge.benchmark run --backend pyav --video sample.mp4 --trials 50 --output benchmarks/results/pyav.json
+
+      - name: Generate report
+        run: python -m frameforge.benchmark report --results-dir benchmarks/results --output docs/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    needs: benchmark
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

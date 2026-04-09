@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>frameforge — Video Decoding for Robotics ML Pipelines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #101010;
+    --surface: #171717;
+    --card: #1c1c1c;
+    --card-hover: #222222;
+    --border: #2a2a2a;
+    --border-hover: #3d3d3d;
+    --text: #b0b0b0;
+    --text-dim: #666666;
+    --text-bright: #e8e8e8;
+    --accent: #e2a442;
+    --accent-dim: rgba(226,164,66,0.12);
+    --accent-hover: #f0b960;
+    --teal: #3dbea0;
+    --teal-dim: rgba(61,190,160,0.12);
+    --red: #d95757;
+    --red-dim: rgba(217,87,87,0.12);
+    --blue: #5b8fd9;
+    --blue-dim: rgba(91,143,217,0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.7; overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; transition: color 0.15s; }
+  a:hover { color: var(--accent-hover); }
+  code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.88em;
+    background: var(--surface); padding: 0.15rem 0.45rem; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(16,16,16,0.8); backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .inner {
+    max-width: 1140px; margin: 0 auto; padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px;
+  }
+  nav .logo {
+    font-weight: 700; font-size: 1.05rem; color: var(--text-bright);
+    letter-spacing: -0.02em;
+  }
+  nav .logo span { color: var(--accent); }
+  nav .links { display: flex; gap: 1.75rem; font-size: 0.85rem; font-weight: 500; }
+  nav .links a { color: var(--text-dim); }
+  nav .links a:hover { color: var(--text-bright); text-decoration: none; }
+  @media (max-width: 700px) {
+    nav .links { gap: 1rem; font-size: 0.8rem; }
+  }
+
+  /* Hero */
+  .hero {
+    padding: 9rem 2rem 5rem; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+    width: 900px; height: 900px;
+    background: radial-gradient(ellipse, rgba(226,164,66,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: ''; position: absolute; top: 60px; right: 10%;
+    width: 400px; height: 400px;
+    background: radial-gradient(ellipse, rgba(61,190,160,0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero .eyebrow {
+    font-size: 0.8rem; font-weight: 600; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1.25rem;
+  }
+  .hero h1 {
+    font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 700; color: var(--text-bright);
+    letter-spacing: -0.035em; line-height: 1.15; margin-bottom: 1.25rem;
+    max-width: 700px; margin-left: auto; margin-right: auto;
+  }
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent) 0%, #d4944a 50%, var(--teal) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero .subtitle {
+    font-size: 1.1rem; color: var(--text-dim); max-width: 560px;
+    margin: 0 auto 2.5rem; line-height: 1.65;
+  }
+  .hero-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.7rem 1.5rem; border-radius: 6px; font-size: 0.88rem;
+    font-weight: 600; font-family: inherit; transition: all 0.15s; cursor: pointer; border: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: #101010;
+  }
+  .btn-primary:hover { background: var(--accent-hover); color: #101010; text-decoration: none; }
+  .btn-ghost {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-bright); text-decoration: none; }
+
+  .install-bar {
+    max-width: 420px; margin: 2rem auto 0; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.7rem 1rem; text-align: left; position: relative;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+  }
+  .install-bar .prompt { color: var(--text-dim); user-select: none; }
+  .install-bar .cmd { color: var(--teal); }
+  .install-bar .copy-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text-dim); font-size: 0.72rem; padding: 0.25rem 0.5rem;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .install-bar .copy-btn:hover { color: var(--text-bright); border-color: var(--border-hover); }
+
+  /* Sections */
+  section { max-width: 1140px; margin: 0 auto; padding: 5rem 2rem; }
+  .section-header { margin-bottom: 3rem; }
+  .section-header h2 {
+    font-size: 1.75rem; font-weight: 700; color: var(--text-bright);
+    letter-spacing: -0.025em; margin-bottom: 0.4rem;
+  }
+  .section-header p { color: var(--text-dim); font-size: 1rem; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  /* Problem cards */
+  .problems { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+  .problem-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.5rem; transition: all 0.2s;
+  }
+  .problem-card:hover { background: var(--card-hover); border-color: var(--border-hover); }
+  .problem-card .icon-row {
+    display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem;
+  }
+  .problem-card .icon-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .problem-card h3 { color: var(--text-bright); font-size: 0.95rem; font-weight: 600; }
+  .problem-card p { color: var(--text-dim); font-size: 0.87rem; line-height: 1.55; }
+
+  /* Code examples */
+  .example-block { margin-bottom: 4.5rem; }
+  .example-block:last-child { margin-bottom: 0; }
+  .code-section {
+    display: grid; grid-template-columns: 1fr 1.15fr; gap: 2.5rem; align-items: start;
+  }
+  @media (max-width: 800px) { .code-section { grid-template-columns: 1fr; } }
+  .code-desc { padding-top: 0.5rem; }
+  .code-desc h3 { color: var(--text-bright); font-size: 1.15rem; font-weight: 600; margin-bottom: 0.6rem; letter-spacing: -0.01em; }
+  .code-desc p { color: var(--text-dim); font-size: 0.92rem; line-height: 1.6; }
+  .tag {
+    display: inline-block; padding: 0.2rem 0.55rem; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 0.75rem;
+  }
+  .tag-amber { background: var(--accent-dim); color: var(--accent); }
+  .tag-teal { background: var(--teal-dim); color: var(--teal); }
+  .tag-blue { background: var(--blue-dim); color: var(--blue); }
+  .tag-red { background: var(--red-dim); color: var(--red); }
+
+  pre {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem 1.5rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.75;
+    font-family: 'JetBrains Mono', monospace;
+    tab-size: 4;
+  }
+  pre .kw { color: #d9a0d4; }
+  pre .fn { color: #e2a442; }
+  pre .str { color: #3dbea0; }
+  pre .cmt { color: #505050; }
+  pre .num { color: #d9a06a; }
+
+  /* Workflow */
+  .workflow-row { display: flex; gap: 0; margin-top: 1.5rem; flex-wrap: wrap; }
+  .wf-step {
+    flex: 1; min-width: 160px; padding: 1.25rem 1rem; text-align: center;
+    background: var(--card); border: 1px solid var(--border);
+    position: relative; transition: all 0.15s;
+  }
+  .wf-step:first-child { border-radius: 8px 0 0 8px; }
+  .wf-step:last-child { border-radius: 0 8px 8px 0; }
+  .wf-step:not(:last-child) { border-right: none; }
+  .wf-step:hover { background: var(--card-hover); }
+  .wf-step .wf-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 0.72rem; font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .wf-step h4 { color: var(--text-bright); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .wf-step p { color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
+
+  /* Backend table */
+  .table-wrap {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+  .backend-table { width: 100%; border-collapse: collapse; }
+  .backend-table th, .backend-table td {
+    text-align: left; padding: 0.85rem 1.1rem;
+  }
+  .backend-table thead th {
+    background: var(--surface); color: var(--text-dim);
+    font-size: 0.72rem; text-transform: uppercase; font-weight: 600;
+    letter-spacing: 0.06em; border-bottom: 1px solid var(--border);
+  }
+  .backend-table tbody td {
+    font-size: 0.88rem; border-bottom: 1px solid var(--border);
+  }
+  .backend-table tbody tr:last-child td { border-bottom: none; }
+  .backend-table tbody tr { transition: background 0.1s; }
+  .backend-table tbody tr:hover { background: var(--card-hover); }
+  .badge {
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px;
+    font-size: 0.72rem; font-weight: 600;
+  }
+  .badge-yes { background: var(--teal-dim); color: var(--teal); }
+  .badge-no { background: rgba(80,80,80,0.3); color: var(--text-dim); }
+  .badge-mid { background: var(--accent-dim); color: var(--accent); }
+
+  /* Link cards */
+  .link-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 2rem; }
+  .link-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;
+    transition: all 0.2s;
+  }
+  .link-card:hover { background: var(--card-hover); border-color: var(--border-hover); transform: translateY(-1px); text-decoration: none; }
+  .link-card h3 { color: var(--text-bright); font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .link-card p { color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; }
+  .link-card .arrow { color: var(--accent); font-size: 0.9rem; margin-top: 1rem; font-weight: 600; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border); padding: 2.5rem 2rem;
+    text-align: center; color: var(--text-dim); font-size: 0.82rem;
+  }
+
+  /* Section label */
+  .workflow-label {
+    color: var(--text-bright); font-size: 0.82rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem;
+    color: var(--text-dim);
+  }
+  .workflow-group { margin-bottom: 3rem; }
+  .workflow-group:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <div class="logo"><span>frame</span>forge</div>
+    <div class="links">
+      <a href="#problems">Why</a>
+      <a href="#examples">Examples</a>
+      <a href="#flywheel">Use Cases</a>
+      <a href="#backends">Backends</a>
+      <a href="#landscape">Landscape</a>
+      <a href="video-compression.html">Video Formats</a>
+      <a href="benchmarks.html">Benchmarks</a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">Built for VLA &amp; robotics foundation model training</div>
+  <h1>Train directly from video.<br><em>No frame extraction.</em></h1>
+  <p class="subtitle">
+    10-30x less storage than extracted frames. One API across four backends.
+    Episode-aware sampling that never crosses task boundaries.
+  </p>
+  <div class="hero-buttons">
+    <a href="#examples" class="btn btn-primary">See examples</a>
+    <a href="video-compression.html" class="btn btn-ghost">Learn video formats</a>
+  </div>
+  <div class="install-bar">
+    <span class="prompt">$ </span><span class="cmd">pip install frameforge[pyav]</span>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install frameforge[pyav]');this.textContent='copied';setTimeout(()=>this.textContent='copy',1500)">copy</button>
+  </div>
+  <!-- Stats strip -->
+  <div style="display:flex;gap:2rem;justify-content:center;margin-top:2.5rem;flex-wrap:wrap">
+    <div style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">10-30x</div>
+      <div style="font-size:0.78rem;color:var(--text-dim)">less storage vs JPEGs</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--teal)">3 lines</div>
+      <div style="font-size:0.78rem;color:var(--text-dim)">video to training tensor</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--accent)">4 backends</div>
+      <div style="font-size:0.78rem;color:var(--text-dim)">swap with one argument</div>
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--teal)">89x</div>
+      <div style="font-size:0.78rem;color:var(--text-dim)">prefetch cache speedup</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<section id="problems">
+  <div class="section-header">
+    <h2>The problems you know</h2>
+    <p>If you've built a video data pipeline for robotics ML, you've hit these.</p>
+  </div>
+  <div class="problems">
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--red)"></div>
+        <h3>18 TB of extracted JPEGs</h3>
+      </div>
+      <p>Your 1000-hour manipulation dataset is 2 TB as video. Pre-extract to frames? Now it's 18 TB, millions of tiny files, and a filesystem nightmare. frameforge reads directly from compressed MP4.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--red)"></div>
+        <h3>Training crosses episode boundaries</h3>
+      </div>
+      <p>Your sampler picks frames 2995-3010. Frames 2995-2999 are "pick up cup", frames 3000-3010 are "open drawer". Your policy learns garbage. <code>EpisodeSampler</code> prevents this.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--red)"></div>
+        <h3>Silent DataLoader corruption</h3>
+      </div>
+      <p>Open video in <code>__init__</code>, fork 8 workers, get silent data corruption. The #1 video ML debugging nightmare. frameforge uses lazy init + pickle-safe readers. Workers just work.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Rewrite pipeline per backend</h3>
+      </div>
+      <p>PyAV, decord, torchcodec, OpenCV &mdash; different APIs, tensor formats, seeking behavior. With frameforge: change one argument. <code>backend="pyav"</code> &rarr; <code>backend="torchcodec"</code>.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Random seeks decode 125 frames</h3>
+      </div>
+      <p>GOP-250 video: seeking to one frame decodes 125 throwaway frames. frameforge's index cache + small-GOP encoding guide cut this to single digits.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--teal)"></div>
+        <h3>Wrist + overhead + third-person</h3>
+      </div>
+      <p>Multi-camera rigs need time-aligned frames across views. <code>sync_readers_by_timestamp</code> gives you synchronized tensors from all cameras in one call.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="examples">
+  <div class="section-header">
+    <h2>Code examples</h2>
+    <p>From a single frame read to a full training DataLoader.</p>
+  </div>
+
+  <div class="example-block">
+    <div class="code-section">
+      <div class="code-desc">
+        <span class="tag tag-amber">Basics</span>
+        <h3>Read frames with Pythonic indexing</h3>
+        <p>
+          VideoReader auto-selects the best available backend. Access frames with integer
+          indexing, slicing, or fancy indexing &mdash; just like a numpy array.
+          All outputs are <code>(H, W, C)</code> uint8 tensors.
+        </p>
+      </div>
+      <pre><span class="kw">from</span> frameforge <span class="kw">import</span> <span class="fn">VideoReader</span>
+
+reader = <span class="fn">VideoReader</span>(<span class="str">"episode_001.mp4"</span>)
+
+<span class="cmt"># Single frame</span>
+frame = reader[<span class="num">0</span>]              <span class="cmt"># (H, W, C)</span>
+
+<span class="cmt"># Clip via slicing</span>
+clip = reader[<span class="num">100</span>:<span class="num">116</span>]        <span class="cmt"># (16, H, W, C)</span>
+
+<span class="cmt"># Fancy indexing</span>
+frames = reader[[<span class="num">0</span>, <span class="num">50</span>, <span class="num">100</span>]]  <span class="cmt"># (3, H, W, C)</span>
+
+<span class="cmt"># Swap backend with one argument</span>
+reader = <span class="fn">VideoReader</span>(<span class="str">"ep.mp4"</span>,
+    backend=<span class="str">"torchcodec"</span>, device=<span class="str">"cuda:0"</span>)</pre>
+    </div>
+  </div>
+
+  <div class="example-block">
+    <div class="code-section">
+      <div class="code-desc">
+        <span class="tag tag-teal">Sampling</span>
+        <h3>Temporal clip sampling</h3>
+        <p>
+          Four strategies: uniform (evaluation), random (augmentation), dense (action detection),
+          and episode-aware (robotics). The episode sampler respects task boundaries
+          so you never sample across different demonstrations.
+        </p>
+      </div>
+      <pre><span class="kw">from</span> frameforge.sampling <span class="kw">import</span> (
+    <span class="fn">UniformSampler</span>,
+    <span class="fn">RandomSampler</span>,
+    <span class="fn">EpisodeSampler</span>,
+)
+
+<span class="cmt"># 16 evenly spaced frames</span>
+uniform = <span class="fn">UniformSampler</span>(num_frames=<span class="num">16</span>)
+clip = uniform.<span class="fn">sample</span>(reader)
+
+<span class="cmt"># Random 2-sec window, 8 random frames</span>
+rand = <span class="fn">RandomSampler</span>(
+    num_frames=<span class="num">8</span>, clip_duration_sec=<span class="num">2.0</span>)
+clip = rand.<span class="fn">sample</span>(reader)
+
+<span class="cmt"># Respect episode boundaries</span>
+ep = <span class="fn">EpisodeSampler</span>(
+    episode_boundaries=[<span class="num">0</span>, <span class="num">3000</span>, <span class="num">6000</span>],
+    num_frames=<span class="num">16</span>)
+clip = ep.<span class="fn">sample</span>(reader)</pre>
+    </div>
+  </div>
+
+  <div class="example-block">
+    <div class="code-section">
+      <div class="code-desc">
+        <span class="tag tag-blue">Training</span>
+        <h3>Worker-safe DataLoader</h3>
+        <p>
+          VideoClipDataset opens readers inside <code>__getitem__</code>, not <code>__init__</code>.
+          No forked file handles, no silent corruption.
+          Collate pads variable-length clips automatically.
+        </p>
+      </div>
+      <pre><span class="kw">from</span> torch.utils.data <span class="kw">import</span> <span class="fn">DataLoader</span>
+<span class="kw">from</span> frameforge.dataloader <span class="kw">import</span> <span class="fn">VideoClipDataset</span>
+<span class="kw">from</span> frameforge.dataloader.collate <span class="kw">import</span> <span class="fn">video_collate</span>
+<span class="kw">from</span> frameforge.sampling <span class="kw">import</span> <span class="fn">UniformSampler</span>
+
+dataset = <span class="fn">VideoClipDataset</span>(
+    video_paths=episode_files,
+    sampler=<span class="fn">UniformSampler</span>(<span class="num">16</span>),
+    backend=<span class="str">"pyav"</span>,
+    transform=<span class="kw">lambda</span> x: x.float() / <span class="num">255.0</span>,
+)
+
+loader = <span class="fn">DataLoader</span>(
+    dataset, batch_size=<span class="num">8</span>,
+    num_workers=<span class="num">4</span>, collate_fn=video_collate)
+
+<span class="kw">for</span> batch <span class="kw">in</span> loader:
+    <span class="cmt"># (B, T, H, W, C) feed to model</span>
+    loss = model(batch)</pre>
+    </div>
+  </div>
+
+  <div class="example-block">
+    <div class="code-section">
+      <div class="code-desc">
+        <span class="tag tag-red">Multi-cam</span>
+        <h3>Multi-camera synchronization</h3>
+        <p>
+          Read time-aligned frames from multiple camera feeds.
+          Common in manipulation rigs with wrist, overhead, and third-person views.
+        </p>
+      </div>
+      <pre><span class="kw">from</span> frameforge.reader <span class="kw">import</span> <span class="fn">VideoReader</span>
+<span class="kw">from</span> frameforge.sampling.sync <span class="kw">import</span> (
+    <span class="fn">sync_readers_by_timestamp</span>,
+)
+
+readers = {
+    <span class="str">"wrist"</span>: <span class="fn">VideoReader</span>(<span class="str">"wrist.mp4"</span>),
+    <span class="str">"overhead"</span>: <span class="fn">VideoReader</span>(<span class="str">"overhead.mp4"</span>),
+}
+
+synced = <span class="fn">sync_readers_by_timestamp</span>(
+    readers,
+    timestamps_sec=[<span class="num">0.0</span>, <span class="num">0.5</span>, <span class="num">1.0</span>, <span class="num">1.5</span>],
+)
+<span class="cmt"># synced["wrist"]    -> (4, H, W, C)</span>
+<span class="cmt"># synced["overhead"] -> (4, H, W, C)</span></pre>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section id="backends">
+  <div class="section-header">
+    <h2>Backend comparison</h2>
+    <p>Swap backends with a single argument. Each has different tradeoffs.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="backend-table">
+      <thead>
+        <tr><th>Backend</th><th>GPU Decode</th><th>Seeking</th><th>Thread-safe</th><th>Best for</th><th>Install</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--text-bright)">PyAV</strong></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-yes">Accurate</span></td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td>Portable default, full FFmpeg control</td>
+          <td><code>frameforge[pyav]</code></td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">torchcodec</strong></td>
+          <td><span class="badge badge-yes">NVDEC</span></td>
+          <td><span class="badge badge-yes">Accurate</span></td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td>GPU training, zero-copy CUDA tensors</td>
+          <td><code>frameforge[torchcodec]</code></td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">decord</strong></td>
+          <td><span class="badge badge-yes">NVDEC</span></td>
+          <td><span class="badge badge-mid">Good</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td>Fast random access for ML training</td>
+          <td><code>frameforge[decord]</code></td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">OpenCV</strong></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-mid">Approx</span></td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td>Fallback, already-installed envs</td>
+          <td><code>frameforge[opencv]</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:1.25rem;font-size:0.88rem;">
+    <a href="benchmarks.html">View benchmark results &rarr;</a>
+  </p>
+</section>
+
+<hr class="divider">
+
+<!-- Data Flywheel -->
+<section id="flywheel">
+  <div class="section-header">
+    <h2>Where frameforge fits</h2>
+    <p>The robotics data flywheel has many stages. frameforge covers the decode/load/sample layer between storage and training.</p>
+  </div>
+
+  <!-- Flywheel diagram -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin-bottom:2.5rem;overflow-x:auto">
+    <div style="display:flex;align-items:center;gap:0;min-width:700px;justify-content:center">
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-size:0.82rem;font-weight:600;min-width:90px">
+        Collect<br><span style="font-weight:400;font-size:0.72rem">ROS / SDK</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:0.82rem;font-weight:600;min-width:90px">
+        Encode<br><span style="font-weight:400;font-size:0.72rem">VideoWriter</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-size:0.82rem;font-weight:600;min-width:90px">
+        Store<br><span style="font-weight:400;font-size:0.72rem">S3 / NFS</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:0.82rem;font-weight:600;min-width:90px">
+        Curate<br><span style="font-weight:400;font-size:0.72rem">VideoReader</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--teal-dim);border:2px solid var(--teal);color:var(--teal);font-size:0.82rem;font-weight:700;min-width:90px">
+        Train<br><span style="font-weight:400;font-size:0.72rem">DataLoader</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:0.82rem;font-weight:600;min-width:90px">
+        Evaluate<br><span style="font-weight:400;font-size:0.72rem">VideoReader</span>
+      </div>
+      <div style="color:var(--text-dim);padding:0 0.4rem;font-size:0.8rem">&rarr;</div>
+      <div style="text-align:center;padding:0.75rem 1rem;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);font-size:0.82rem;font-weight:600;min-width:90px">
+        Deploy<br><span style="font-weight:400;font-size:0.72rem">ONNX / C++</span>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:0.75rem;font-size:0.75rem;color:var(--text-dim)">
+      <span style="color:var(--accent)">&#9632;</span> frameforge covers &nbsp;&nbsp;
+      <span style="color:var(--teal)">&#9632;</span> primary use case &nbsp;&nbsp;
+      <span style="color:var(--text-dim)">&#9632;</span> outside scope
+    </div>
+  </div>
+
+  <!-- Use case cards -->
+  <div class="problems" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--teal)"></div>
+        <h3>Training data loading</h3>
+      </div>
+      <p>The primary use case. Random access into compressed video without pre-extracting to JPEG. Episode-aware sampling, worker-safe DataLoaders, backend swapping to find the fastest decode path for your hardware.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Data curation</h3>
+      </div>
+      <p>Scan metadata across 1000s of videos. Verify frame counts match annotations. Extract specific clips by index or timestamp. Re-encode with ML-friendly settings (<code>-g 30 -bf 0</code>). Multi-camera alignment checks.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Post-collection encoding</h3>
+      </div>
+      <p>Re-encode raw recordings with optimal settings for ML &mdash; smaller GOP for fast seeking, constant framerate, faststart flag. Downscale 4K datasets to 720p. Not a recording stack replacement, but a re-encoding tool.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Offline evaluation</h3>
+      </div>
+      <p>Read specific frames from rollout recordings. Compare model predictions frame-by-frame. Write prediction overlays back to video with VideoWriter for sharing and debugging.</p>
+    </div>
+    <div class="problem-card">
+      <div class="icon-row">
+        <div class="icon-dot" style="background:var(--accent)"></div>
+        <h3>Pipeline benchmarking</h3>
+      </div>
+      <p>Before committing to a backend for a large training run, measure throughput, latency percentiles, and memory on your actual hardware and videos. Share HTML reports with the team.</p>
+    </div>
+  </div>
+
+  <!-- What it's NOT for -->
+  <div style="margin-top:2.5rem">
+    <h3 style="color:var(--text-bright);font-size:1rem;font-weight:600;margin-bottom:1rem">What frameforge is <em>not</em> for</h3>
+    <div class="table-wrap">
+      <table class="backend-table">
+        <thead><tr><th>Stage</th><th>Why not</th><th>Use instead</th></tr></thead>
+        <tbody>
+          <tr><td>Live camera capture</td><td>Reads files, not live streams</td><td>ROS2 image transport, GStreamer, RealSense SDK</td></tr>
+          <tr><td>On-robot inference</td><td>Too heavy (torch dep), not real-time</td><td>ONNX Runtime, TensorRT, custom C++</td></tr>
+          <tr><td>Distributed training</td><td>No Ray/DALI integration yet</td><td>NVIDIA DALI, Ray Data, WebDataset</td></tr>
+          <tr><td>Annotation / labeling</td><td>No UI, no annotation formats</td><td>Label Studio, CVAT, Rerun</td></tr>
+          <tr><td>Dataset hosting</td><td>Not a data platform</td><td>HuggingFace Datasets, LeRobot, Open X-Embodiment</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Workflows -->
+<section id="workflows">
+  <div class="section-header">
+    <h2>Common workflows</h2>
+    <p>How robotics researchers use frameforge day to day.</p>
+  </div>
+
+  <div class="workflow-group">
+    <div class="workflow-label">Dataset preparation</div>
+    <div class="workflow-row">
+      <div class="wf-step">
+        <div class="wf-num">1</div>
+        <h4>Record episodes</h4>
+        <p>Multi-camera MP4s from your rig</p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">2</div>
+        <h4>Define episodes</h4>
+        <p>Mark frame indices where tasks start/end</p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">3</div>
+        <h4>Create dataset</h4>
+        <p>VideoClipDataset + EpisodeSampler</p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">4</div>
+        <h4>Train</h4>
+        <p>DataLoader, fork-safe, variable-length collation</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="workflow-group">
+    <div class="workflow-label">Backend evaluation</div>
+    <div class="workflow-row">
+      <div class="wf-step">
+        <div class="wf-num">1</div>
+        <h4>Benchmark</h4>
+        <p><code style="font-size:0.72rem;border:none;padding:0">frameforge-bench run</code></p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">2</div>
+        <h4>Compare</h4>
+        <p>Run across all backends, save JSON</p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">3</div>
+        <h4>Report</h4>
+        <p>Generate HTML with charts and tables</p>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">4</div>
+        <h4>Deploy</h4>
+        <p>Pick fastest backend, change one arg</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- Landscape -->
+<section id="landscape">
+  <div class="section-header">
+    <h2>How frameforge compares</h2>
+    <p>Every robotics ML team needs video decode. Here's the landscape.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table class="backend-table">
+      <thead>
+        <tr><th>Library</th><th>What it is</th><th>Stars</th><th>Status</th><th>Relation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--text-bright)">torchcodec</strong></td>
+          <td>PyTorch's official low-level decoder. CUDA GPU decode.</td>
+          <td>~1K</td>
+          <td><span class="badge badge-yes">Active</span></td>
+          <td>Our backend</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">decord</strong></td>
+          <td>C++ video loader. Was the ML standard.</td>
+          <td>~2.5K</td>
+          <td><span class="badge badge-no">Abandoned</span></td>
+          <td>Our backend (with fork-safety fix)</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">NVIDIA DALI</strong></td>
+          <td>GPU augmentation pipeline. Linux/CUDA only.</td>
+          <td>~5.7K</td>
+          <td><span class="badge badge-yes">Active</span></td>
+          <td>Complementary (integration planned)</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">pytorchvideo</strong></td>
+          <td>Model zoo + transforms for action recognition.</td>
+          <td>~3.6K</td>
+          <td><span class="badge badge-no">Dead</span></td>
+          <td>Different layer (models, not decode)</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">torchvision IO</strong></td>
+          <td><code>read_video()</code>, <code>VideoReader</code>.</td>
+          <td>17K+</td>
+          <td><span class="badge badge-mid">Deprecated</span></td>
+          <td>frameforge replaces this</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">LeRobot</strong></td>
+          <td>Full robotics platform. Stores data as MP4.</td>
+          <td>~23K</td>
+          <td><span class="badge badge-yes">Active</span></td>
+          <td>Key integration target</td>
+        </tr>
+        <tr>
+          <td><strong style="color:var(--text-bright)">Robo-DM</strong></td>
+          <td>Cloud data management for robot datasets.</td>
+          <td>~143</td>
+          <td><span class="badge badge-yes">New</span></td>
+          <td>Adjacent (they store, we load)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="color:var(--text-bright);font-size:1rem;font-weight:600;margin:2rem 0 1rem">What no other library does</h3>
+  <div class="table-wrap">
+    <table class="backend-table" style="font-size:0.82rem">
+      <thead>
+        <tr>
+          <th></th>
+          <th style="color:var(--accent)">frameforge</th>
+          <th>torchcodec</th>
+          <th>decord</th>
+          <th>DALI</th>
+          <th>LeRobot</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Episode-aware sampling</td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-mid">Dataset level</span></td>
+        </tr>
+        <tr>
+          <td>Multi-camera sync</td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-mid">Format level</span></td>
+        </tr>
+        <tr>
+          <td>Pluggable backends</td>
+          <td><span class="badge badge-yes">4 backends</span></td>
+          <td><span class="badge badge-no">Single</span></td>
+          <td><span class="badge badge-no">Single</span></td>
+          <td><span class="badge badge-no">Single</span></td>
+          <td><span class="badge badge-mid">2 (hardcoded)</span></td>
+        </tr>
+        <tr>
+          <td>Fork-safe (lazy init + pickle)</td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td><span class="badge badge-mid">Works in workers</span></td>
+          <td><span class="badge badge-no">Segfaults</span></td>
+          <td><span class="badge badge-yes">Own engine</span></td>
+          <td><span class="badge badge-no">No handling</span></td>
+        </tr>
+        <tr>
+          <td>Disk-cached frame index</td>
+          <td><span class="badge badge-yes">Persisted</span></td>
+          <td><span class="badge badge-mid">In-memory</span></td>
+          <td><span class="badge badge-mid">In-memory</span></td>
+          <td><span class="badge badge-mid">Internal</span></td>
+          <td><span class="badge badge-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Prefetch decode-ahead</td>
+          <td><span class="badge badge-yes">Yes</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-yes">Built-in</span></td>
+          <td><span class="badge badge-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Decode benchmarking</td>
+          <td><span class="badge badge-yes">Suite</span></td>
+          <td><span class="badge badge-mid">Internal</span></td>
+          <td><span class="badge badge-no">No</span></td>
+          <td><span class="badge badge-mid">Profiling</span></td>
+          <td><span class="badge badge-no">No</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.25rem;margin-top:1.5rem;font-size:0.88rem">
+    <strong style="color:var(--text-bright)">Key takeaway:</strong>
+    Low-level decoders (torchcodec, decord) handle bytes-to-pixels. Platforms (LeRobot, DALI) handle end-to-end workflows.
+    <strong style="color:var(--accent)">frameforge is the missing middle layer</strong> &mdash; robotics-aware decode, sampling, and loading that works with any backend and any dataset format.
+  </div>
+</section>
+
+<hr class="divider">
+
+<section>
+  <div class="section-header">
+    <h2>Learn more</h2>
+    <p>Deep-dive resources for building better video ML pipelines.</p>
+  </div>
+  <div class="link-cards">
+    <a href="video-compression.html" class="link-card">
+      <div>
+        <h3>Video Formats &amp; Compression Guide</h3>
+        <p>H.264, H.265, GOP structure, chroma subsampling, and why it matters for ML. Interactive animations included.</p>
+      </div>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a href="benchmarks.html" class="link-card">
+      <div>
+        <h3>Benchmark Results</h3>
+        <p>Throughput, latency percentiles, and memory usage across backends on real hardware.</p>
+      </div>
+      <span class="arrow">&rarr;</span>
+    </a>
+    <a href="architecture.md" class="link-card">
+      <div>
+        <h3>Architecture</h3>
+        <p>System design, class diagrams, data flow, and threading model.</p>
+      </div>
+      <span class="arrow">&rarr;</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <p>frameforge &mdash; video decoding utilities for robotics foundation model data pipelines</p>
+</footer>
+
+</body>
+</html>

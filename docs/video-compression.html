@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Formats &amp; Compression — frameforge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #101010;
+    --surface: #171717;
+    --card: #1c1c1c;
+    --card-hover: #222222;
+    --border: #2a2a2a;
+    --border-hover: #3d3d3d;
+    --text: #b0b0b0;
+    --text-dim: #666666;
+    --text-bright: #e8e8e8;
+    --accent: #e2a442;
+    --accent-dim: rgba(226,164,66,0.12);
+    --accent-hover: #f0b960;
+    --teal: #3dbea0;
+    --teal-dim: rgba(61,190,160,0.12);
+    --red: #d95757;
+    --red-dim: rgba(217,87,87,0.12);
+    --blue: #5b8fd9;
+    --blue-dim: rgba(91,143,217,0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; transition: color 0.15s; }
+  a:hover { color: var(--accent-hover); }
+  code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.88em;
+    background: var(--surface); padding: 0.15rem 0.45rem; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  pre {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem 1.5rem; overflow-x: auto; margin: 1rem 0 1.5rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; line-height: 1.7;
+  }
+
+  /* Nav */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(16,16,16,0.8); backdrop-filter: blur(20px) saturate(1.2);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .inner {
+    max-width: 860px; margin: 0 auto; padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between; height: 56px;
+  }
+  nav .logo { font-weight: 700; font-size: 1.05rem; color: var(--text-bright); letter-spacing: -0.02em; }
+  nav .logo span { color: var(--accent); }
+  nav .links { display: flex; gap: 1.75rem; font-size: 0.85rem; font-weight: 500; }
+  nav .links a { color: var(--text-dim); }
+  nav .links a:hover { color: var(--text-bright); text-decoration: none; }
+
+  /* Content */
+  .content { max-width: 860px; margin: 0 auto; padding: 5rem 2rem 4rem; }
+
+  /* Hero */
+  .page-hero { padding-top: 4.5rem; margin-bottom: 3rem; }
+  .page-hero .eyebrow {
+    font-size: 0.78rem; font-weight: 600; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem;
+  }
+  .page-hero h1 {
+    font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700;
+    color: var(--text-bright); letter-spacing: -0.03em; margin-bottom: 0.75rem; line-height: 1.15;
+  }
+  .page-hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .page-hero .lead { font-size: 1.05rem; color: var(--text-dim); max-width: 640px; }
+
+  /* TOC */
+  .toc {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1.25rem 1.5rem; margin-bottom: 3.5rem;
+  }
+  .toc h3 {
+    color: var(--text-dim); font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 0.6rem; font-weight: 600;
+  }
+  .toc ol { padding-left: 1.2rem; columns: 2; column-gap: 2rem; }
+  @media (max-width: 600px) { .toc ol { columns: 1; } }
+  .toc li { margin-bottom: 0.2rem; break-inside: avoid; }
+  .toc a { color: var(--text); font-size: 0.88rem; }
+  .toc a:hover { color: var(--accent); }
+
+  /* Sections */
+  .section { margin-bottom: 4.5rem; }
+  .section h2 {
+    font-size: 1.5rem; font-weight: 700; color: var(--text-bright);
+    margin-bottom: 0.4rem; padding-top: 2rem; letter-spacing: -0.02em;
+  }
+  .section h3 { font-size: 1.1rem; font-weight: 600; color: var(--text-bright); margin: 1.75rem 0 0.5rem; }
+  .section p { margin-bottom: 0.9rem; }
+  .section ul, .section ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  .section li { margin-bottom: 0.25rem; }
+
+  /* Tables */
+  .table-wrap {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin: 1rem 0 1.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 0.7rem 0.9rem; }
+  thead th {
+    background: var(--surface); color: var(--text-dim); font-size: 0.72rem;
+    text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td { font-size: 0.88rem; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--card-hover); }
+
+  /* Info boxes */
+  .callout {
+    background: var(--card); border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0;
+    border-left: 3px solid var(--accent); font-size: 0.9rem;
+  }
+  .callout.warn { border-left-color: var(--red); }
+  .callout.tip { border-left-color: var(--teal); }
+  .callout strong { color: var(--text-bright); }
+
+  /* Highlight text */
+  .hl { color: var(--text-bright); font-weight: 600; }
+  .hl-red { color: var(--red); }
+  .hl-blue { color: var(--blue); }
+  .hl-teal { color: var(--teal); }
+  .hl-amber { color: var(--accent); }
+
+  /* Animation containers */
+  .interactive {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.5rem; margin: 1.5rem 0;
+  }
+  .interactive .label {
+    color: var(--text-dim); font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.25rem;
+  }
+  .interactive .hint { color: var(--text-dim); font-size: 0.82rem; margin-bottom: 1rem; }
+
+  /* GOP frames */
+  .gop-frames { display: flex; gap: 3px; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+  .gop-frame {
+    width: 44px; text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .gop-frame:hover { transform: translateY(-2px); }
+  .gop-frame.active { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .gop-frame .bar { border-radius: 3px 3px 0 0; margin-bottom: 2px; transition: all 0.2s; }
+  .gop-frame.i .bar { background: var(--red); height: 72px; }
+  .gop-frame.p .bar { background: var(--blue); height: 40px; }
+  .gop-frame.b .bar { background: var(--teal); height: 22px; }
+  .gop-frame .lbl { font-size: 0.68rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+  .gop-legend { display: flex; gap: 1.25rem; font-size: 0.8rem; margin-bottom: 0.75rem; }
+  .gop-legend span { display: flex; align-items: center; gap: 0.35rem; color: var(--text-dim); }
+  .gop-legend .dot { width: 8px; height: 8px; border-radius: 2px; }
+  .gop-detail {
+    background: var(--card); border-radius: 6px; padding: 0.9rem 1rem;
+    font-size: 0.85rem; min-height: 52px; transition: all 0.2s;
+  }
+
+  /* Seek simulation */
+  .seek-track {
+    height: 36px; background: var(--card); border-radius: 5px;
+    display: flex; overflow: hidden; margin-bottom: 0.75rem; position: relative;
+  }
+  .seek-track .seg {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-dim);
+    border-right: 1px solid var(--border); transition: all 0.3s; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .seek-track .seg:last-child { border-right: none; }
+  .seek-track .seg.key { background: var(--red-dim); color: var(--red); }
+  .seek-track .seg.dec { background: var(--blue-dim); color: var(--blue); }
+  .seek-needle {
+    position: absolute; top: -4px; width: 2px; height: 44px;
+    background: var(--accent); border-radius: 1px; transition: left 0.4s;
+    pointer-events: none;
+  }
+  .seek-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .seek-btns button {
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.8rem; font-weight: 600;
+    padding: 0.45rem 0.9rem; border-radius: 5px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); cursor: pointer; transition: all 0.15s;
+  }
+  .seek-btns button:hover { border-color: var(--border-hover); color: var(--text-bright); }
+  .seek-btns button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .seek-result { color: var(--text-dim); font-size: 0.82rem; margin-left: 0.5rem; }
+
+  /* CRF cards */
+  .crf-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.6rem; margin-top: 0.75rem;
+  }
+  .crf-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.9rem; text-align: center; cursor: pointer; transition: all 0.15s;
+  }
+  .crf-card:hover { border-color: var(--border-hover); }
+  .crf-card.sel { border-color: var(--accent); background: var(--accent-dim); }
+  .crf-card .v { font-size: 1.3rem; font-weight: 700; color: var(--text-bright); }
+  .crf-card .q { font-size: 0.72rem; color: var(--text-dim); margin-top: 0.15rem; }
+  .crf-card .s { font-size: 0.82rem; color: var(--accent); margin-top: 0.2rem; font-weight: 600; }
+  .crf-info {
+    background: var(--card); border-radius: 6px; padding: 0.9rem 1rem;
+    margin-top: 0.75rem; font-size: 0.85rem;
+  }
+
+  /* Chroma grids */
+  .chroma-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 600px) { .chroma-row { grid-template-columns: 1fr; } }
+  .chroma-col { text-align: center; }
+  .chroma-col h5 { color: var(--text-bright); font-size: 0.88rem; margin-bottom: 0.5rem; }
+  .px-grid { display: inline-grid; gap: 2px; margin-bottom: 0.4rem; grid-template-columns: repeat(8, 20px); }
+  .px-grid .px { width: 20px; height: 20px; border-radius: 2px; transition: opacity 0.3s; }
+  .chroma-col .meta { font-size: 0.75rem; color: var(--text-dim); }
+
+  /* Decode pipeline */
+  .pipe-steps { display: flex; flex-direction: column; }
+  .pipe-step {
+    display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.65rem 0.8rem;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .pipe-step:hover { background: rgba(226,164,66,0.04); }
+  .pipe-step.open { background: rgba(226,164,66,0.06); }
+  .pipe-n {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--card); border: 1.5px solid var(--border); color: var(--text-dim);
+    font-size: 0.7rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px; transition: all 0.15s;
+  }
+  .pipe-step.open .pipe-n { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .pipe-title { font-weight: 600; color: var(--text-bright); font-size: 0.88rem; }
+  .pipe-desc { font-size: 0.82rem; color: var(--text-dim); margin-top: 0.25rem; display: none; line-height: 1.55; }
+  .pipe-step.open .pipe-desc { display: block; }
+  .pipe-conn { width: 1.5px; height: 8px; background: var(--border); margin-left: 1.55rem; }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 2.5rem 2rem;
+    text-align: center; color: var(--text-dim); font-size: 0.82rem;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <div class="logo"><a href="index.html" style="color:inherit"><span>frame</span>forge</a></div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="benchmarks.html">Benchmarks</a>
+    </div>
+  </div>
+</nav>
+
+<div class="content">
+
+<div class="page-hero">
+  <div class="eyebrow">Knowledge base</div>
+  <h1>Video Formats &amp; <em>Compression for ML</em></h1>
+  <p class="lead">
+    Everything a robotics ML engineer needs to know about video codecs, encoding,
+    and decoding &mdash; and why it matters for your training pipeline.
+  </p>
+</div>
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Containers vs Codecs</a></li>
+    <li><a href="#s2">H.264 &mdash; I/P/B Frames &amp; GOP</a></li>
+    <li><a href="#s3">Why Random Access is Slow</a></li>
+    <li><a href="#s4">H.265/HEVC Improvements</a></li>
+    <li><a href="#s5">Encoding: Bitrate, CRF, Quality</a></li>
+    <li><a href="#s6">Chroma Subsampling &amp; Color</a></li>
+    <li><a href="#s7">The Decode Pipeline</a></li>
+    <li><a href="#s8">Why This Matters for Robotics</a></li>
+    <li><a href="#s9">Common Pipeline Pitfalls</a></li>
+    <li><a href="#s10">Recommended Encoding Settings</a></li>
+  </ol>
+</div>
+
+<!-- 1 -->
+<div class="section" id="s1">
+  <h2>1. Containers vs Codecs</h2>
+  <p>
+    A <span class="hl">codec</span> (coder-decoder) compresses video data.
+    A <span class="hl">container</span> packages compressed streams into a file.
+    The codec is the language; the container is the envelope.
+  </p>
+
+  <h3>Common containers</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Container</th><th>Extension</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>MP4</strong></td><td>.mp4</td><td><code>moov</code> atom enables O(1) frame lookup. Use <code>-movflags +faststart</code>.</td></tr>
+      <tr><td><strong>MKV</strong></td><td>.mkv</td><td>Open, flexible, supports any codec. Slightly less hardware support.</td></tr>
+      <tr><td><strong>AVI</strong></td><td>.avi</td><td>Legacy. Fixed framerate only. Still found in older lab datasets.</td></tr>
+      <tr><td><strong>WebM</strong></td><td>.webm</td><td>VP9/AV1 container. Good for web delivery.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Common codecs</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Codec</th><th>Bitrate (1080p30)</th><th>HW Decode</th><th>Use case</th></tr></thead>
+    <tbody>
+      <tr><td><strong>H.264/AVC</strong></td><td>5&ndash;15 Mbps</td><td>Universal</td><td>Safe default. Every GPU since ~2008.</td></tr>
+      <tr><td><strong>H.265/HEVC</strong></td><td>3&ndash;8 Mbps</td><td>Most GPUs since ~2015</td><td>30&ndash;50% smaller. Encoding 3&ndash;10x slower.</td></tr>
+      <tr><td><strong>VP9</strong></td><td>3&ndash;8 Mbps</td><td>Chrome, Android, modern GPUs</td><td>Royalty-free. YouTube standard.</td></tr>
+      <tr><td><strong>AV1</strong></td><td>2&ndash;6 Mbps</td><td>RTX 30+, M3+, Intel Arc</td><td>Best compression. Encoding extremely slow.</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- 2 -->
+<div class="section" id="s2">
+  <h2>2. H.264 &mdash; I/P/B Frames &amp; GOP</h2>
+  <p>
+    H.264 compresses video as <span class="hl">Groups of Pictures (GOPs)</span>.
+    Each GOP starts with a keyframe and contains three frame types with very different sizes.
+  </p>
+
+  <div class="interactive">
+    <div class="label">Interactive</div>
+    <div class="hint">Click any frame to see how it's encoded and why it matters for seeking.</div>
+    <div class="gop-frames" id="gopFrames"></div>
+    <div class="gop-legend">
+      <span><span class="dot" style="background:var(--red)"></span> I-frame</span>
+      <span><span class="dot" style="background:var(--blue)"></span> P-frame</span>
+      <span><span class="dot" style="background:var(--teal)"></span> B-frame</span>
+    </div>
+    <div class="gop-detail" id="gopDetail">Click a frame above to inspect it.</div>
+  </div>
+
+  <h3>Frame types</h3>
+  <ul>
+    <li><span class="hl-red"><strong>I-frame</strong></span> &mdash; Self-contained, like a JPEG. The only frame you can decode independently. 5&ndash;10x larger than P-frames.</li>
+    <li><span class="hl-blue"><strong>P-frame</strong></span> &mdash; Motion vectors + residual from previous frames. 30&ndash;50% the size of an I-frame.</li>
+    <li><span class="hl-teal"><strong>B-frame</strong></span> &mdash; References past AND future frames. Smallest, but causes decode order &ne; display order.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>The B-frame problem for ML:</strong> B-frames mean decode order &ne; display order. Seeking to "frame 5" can return the wrong frame. For datasets, encode with <code>-bf 0</code> (zero B-frames). Compression penalty is only ~10&ndash;15%.
+  </div>
+
+  <h3>Macroblock encoding pipeline</h3>
+  <p>H.264 divides frames into <strong>16x16 macroblocks</strong> (8,160 per 1080p frame). Each goes through:</p>
+  <ol>
+    <li><strong>Prediction</strong> &mdash; intra (spatial) or inter (temporal via motion vectors, quarter-pixel precision)</li>
+    <li><strong>Residual</strong> &mdash; subtract prediction from actual pixels</li>
+    <li><strong>Transform</strong> &mdash; integer DCT converts residual to frequency domain</li>
+    <li><strong>Quantization</strong> &mdash; the lossy step. Higher QP = more loss = smaller file</li>
+    <li><strong>Entropy coding</strong> &mdash; CABAC (10&ndash;15% more efficient) or CAVLC</li>
+  </ol>
+</div>
+
+<!-- 3 -->
+<div class="section" id="s3">
+  <h2>3. Why Random Access is Slow</h2>
+  <p>
+    ML training samples random frames. Video codecs are built for sequential playback.
+    To access any frame, the decoder must find the nearest <span class="hl-red">keyframe</span> before it and decode every frame in between.
+  </p>
+
+  <div class="interactive">
+    <div class="label">Interactive &mdash; Seek cost</div>
+    <div class="hint">Click a GOP size to simulate seeking to a random frame. Red = keyframe GOP. Blue = frames decoded.</div>
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-dim);margin-bottom:3px;font-family:'JetBrains Mono',monospace">
+      <span>0</span><span>300</span>
+    </div>
+    <div class="seek-track" id="seekTrack"><div class="seek-needle" id="seekNeedle" style="left:0"></div></div>
+    <div class="seek-btns">
+      <button onclick="doSeek(30)" class="active">GOP=30</button>
+      <button onclick="doSeek(1)">GOP=1 (all-intra)</button>
+      <button onclick="doSeek(250)">GOP=250 (default)</button>
+      <span class="seek-result" id="seekResult">Click a button to simulate</span>
+    </div>
+  </div>
+
+  <h3>Seek cost by GOP size</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>GOP Size</th><th>Avg frames decoded</th><th>Time @ 500fps</th><th>File size vs all-intra</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 (all-intra)</strong></td><td>1</td><td>2 ms</td><td>1.0x</td></tr>
+      <tr><td>12</td><td>6</td><td>12 ms</td><td>~0.3x</td></tr>
+      <tr><td><strong>30 (recommended)</strong></td><td>15</td><td>30 ms</td><td>~0.15x</td></tr>
+      <tr><td>250 (ffmpeg default)</td><td>125</td><td>250 ms</td><td>~0.1x</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout tip">
+    <strong>Recommendation:</strong> GOP=30 (1 second at 30fps). Max 29 frames per seek, 5&ndash;7x compression over all-intra.
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="section" id="s4">
+  <h2>4. H.265/HEVC Improvements</h2>
+  <p>H.265 replaces H.264's 16x16 macroblock with a <span class="hl">Coding Tree Unit (CTU)</span> up to 64x64, recursively subdivided.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Feature</th><th>H.264</th><th>H.265</th></tr></thead>
+    <tbody>
+      <tr><td>Max block size</td><td>16x16</td><td><strong>64x64</strong></td></tr>
+      <tr><td>Blocks per 1080p</td><td>8,160</td><td><strong>510</strong></td></tr>
+      <tr><td>Intra prediction modes</td><td>9</td><td><strong>35</strong></td></tr>
+      <tr><td>Max transform size</td><td>8x8</td><td><strong>32x32</strong></td></tr>
+      <tr><td>In-loop filters</td><td>Deblocking</td><td>Deblocking + <strong>SAO</strong></td></tr>
+      <tr><td>Compression vs H.264</td><td>Baseline</td><td><strong>30&ndash;50% better</strong></td></tr>
+      <tr><td>Encode speed (software)</td><td>30&ndash;60 fps</td><td><strong>5&ndash;15 fps</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <strong>When to use H.265:</strong> Storage-constrained large datasets, 4K+, encode-once-read-many. Not when you need max decode compatibility.
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="section" id="s5">
+  <h2>5. Encoding: Bitrate, CRF &amp; Quality</h2>
+  <ul>
+    <li><strong>CBR</strong> &mdash; Fixed bits/sec. Wastes bits on easy frames. For streaming.</li>
+    <li><strong>VBR</strong> &mdash; Allocates more to complex scenes. Better quality per byte.</li>
+    <li><strong>CRF</strong> &mdash; Targets constant perceptual quality. <span class="hl">Best for datasets.</span></li>
+  </ul>
+
+  <div class="interactive">
+    <div class="label">Interactive &mdash; CRF quality vs file size</div>
+    <div class="hint">Click a value. Sizes are for 1 hour of 1080p30 H.264.</div>
+    <div class="crf-grid" id="crfGrid"></div>
+    <div class="crf-info" id="crfInfo">Select a CRF value above.</div>
+  </div>
+</div>
+
+<!-- 6 -->
+<div class="section" id="s6">
+  <h2>6. Chroma Subsampling &amp; Color</h2>
+  <p>
+    Human vision is more sensitive to brightness than color. Chroma subsampling stores color at lower resolution &mdash;
+    but for robotics, this can silently corrupt training signal.
+  </p>
+
+  <div class="interactive">
+    <div class="label">Interactive &mdash; Chroma comparison</div>
+    <div class="hint">Bright pixels have independent color data. Dimmed pixels share color with neighbors.</div>
+    <div class="chroma-row" id="chromaRow"></div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Manipulation tasks:</strong> In 4:2:0, a thin red wire on a green PCB loses its edge color &mdash;
+    border pixels get chroma averaged between red and green. Use <code>yuv444p</code> if color accuracy matters.
+  </div>
+
+  <h3>Color space pitfalls</h3>
+  <ul>
+    <li><strong>BGR vs RGB</strong> &mdash; OpenCV decodes BGR; PyTorch expects RGB. Swapped channels degrade accuracy silently.</li>
+    <li><strong>BT.601 vs BT.709</strong> &mdash; Different YUV&rarr;RGB matrices. Wrong matrix shifts reds warmer, greens off.</li>
+    <li><strong>Limited vs Full range</strong> &mdash; Mismatched range (16&ndash;235 vs 0&ndash;255) crushes blacks and clips whites.</li>
+  </ul>
+</div>
+
+<!-- 7 -->
+<div class="section" id="s7">
+  <h2>7. The Decode Pipeline</h2>
+  <p>What happens when you call <code>reader[100]</code>? Click each step to expand.</p>
+
+  <div class="interactive">
+    <div class="label">Interactive &mdash; Decode steps</div>
+    <div class="pipe-steps" id="pipeline"></div>
+  </div>
+
+  <h3>CPU vs GPU decode</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>CPU (libavcodec)</th><th>NVIDIA NVDEC</th><th>Apple VideoToolbox</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1080p H.264</strong></td><td>200&ndash;600 fps</td><td>1000&ndash;2000+ fps</td><td>500&ndash;1500 fps</td></tr>
+      <tr><td><strong>CPU load</strong></td><td>High</td><td>~0%</td><td>~0%</td></tr>
+      <tr><td><strong>Output</strong></td><td>System RAM</td><td>GPU VRAM</td><td>System RAM / Metal</td></tr>
+      <tr><td><strong>Max sessions</strong></td><td>= CPU cores</td><td>3&ndash;5 (consumer)</td><td>Multiple</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- 8 -->
+<div class="section" id="s8">
+  <h2>8. Why This Matters for Robotics</h2>
+
+  <h3>Egocentric video</h3>
+  <p>Head-mounted cameras: high motion, variable lighting, rolling shutter. Use <strong>CRF 18&ndash;22, GOP 30&ndash;60</strong>.</p>
+
+  <h3>Multi-camera rigs</h3>
+  <p>
+    4-camera 1080p30 at CRF 20 = ~40&ndash;80 Mbps total, <strong>18&ndash;36 GB/hour</strong>.
+    Hundreds of hours = multiple TB. H.265 saves 30&ndash;50%. Synchronize at constant framerate.
+  </p>
+
+  <h3>Dataset storage at scale</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>CRF</th><th>Quality</th><th>1hr 1080p30</th><th>1000hr (2 cams)</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>Lossless</td><td>50&ndash;150 GB</td><td>100&ndash;300 TB</td></tr>
+      <tr><td><strong>18</strong></td><td>Near-lossless</td><td>2&ndash;8 GB</td><td><strong>4&ndash;16 TB</strong></td></tr>
+      <tr><td>23</td><td>Good</td><td>1&ndash;3 GB</td><td>2&ndash;6 TB</td></tr>
+      <tr><td>28</td><td>Moderate</td><td>0.3&ndash;1.5 GB</td><td>0.6&ndash;3 TB</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Frame-accurate access for training</h3>
+  <p>With GOP=250, seeking to a random frame decodes <strong>125 frames on average</strong> &mdash; a batch of 32 costs 8 seconds. Solutions:</p>
+  <ol>
+    <li><strong>Small GOP</strong> (10&ndash;30) at encode time</li>
+    <li><strong>Frame index</strong> &mdash; pre-scan keyframe offsets, cache</li>
+    <li><strong>Sequential clips</strong> &mdash; sample contiguous clips, amortize cost</li>
+    <li><strong>Prefetch &amp; cache</strong> &mdash; workers hide latency behind parallel I/O</li>
+  </ol>
+  <p>frameforge implements strategies 1, 3, and 4 out of the box.</p>
+</div>
+
+<!-- 9 -->
+<div class="section" id="s9">
+  <h2>9. Common Pipeline Pitfalls</h2>
+
+  <h3>Variable frame rate (VFR)</h3>
+  <p>Webcams, phones, GoPros produce VFR. Frame intervals vary. Assuming constant framerate silently misaligns frames with IMU/joint data.</p>
+  <div class="callout tip"><strong>Fix:</strong> Re-encode with <code>-vsync cfr -r 30</code> before using in a pipeline.</div>
+
+  <h3>Seek accuracy varies by backend</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Backend</th><th>Accuracy</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>PyAV</td><td>Accurate</td><td>Seeks to keyframe, decodes forward. Most control.</td></tr>
+      <tr><td>decord</td><td>Accurate</td><td>Builds frame index on open. Best for random access.</td></tr>
+      <tr><td>torchcodec</td><td>Accurate</td><td>PTS-based, handles reordering.</td></tr>
+      <tr><td>OpenCV</td><td>&plusmn;1&ndash;3 frames</td><td><code>CAP_PROP_POS_FRAMES</code> unreliable with B-frames.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Fork safety</h3>
+  <p>
+    Python <code>multiprocessing</code> uses <code>fork()</code> by default on Linux.
+    Open a video in parent, children inherit corrupted state.
+    Use <code>spawn</code> start method, or only open videos inside workers &mdash;
+    which is what frameforge's <code>VideoClipDataset</code> does.
+  </p>
+</div>
+
+<!-- 10 -->
+<div class="section" id="s10">
+  <h2>10. Recommended Encoding Settings</h2>
+  <pre>ffmpeg -i input.raw -c:v libx264 \
+  -preset slow \
+  -crf 18 \
+  -profile:v high \
+  -g 30 \
+  -bf 0 \
+  -pix_fmt yuv420p \
+  -movflags +faststart \
+  -vsync cfr \
+  output.mp4</pre>
+
+  <div class="table-wrap"><table>
+    <thead><tr><th>Flag</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>-preset slow</code></td><td>Better compression. Encode once, read many.</td></tr>
+      <tr><td><code>-crf 18</code></td><td>Near-lossless. Best for archival.</td></tr>
+      <tr><td><code>-g 30</code></td><td>GOP = 1 second. Good seek performance.</td></tr>
+      <tr><td><code>-bf 0</code></td><td>No B-frames. Display = decode order.</td></tr>
+      <tr><td><code>-movflags +faststart</code></td><td>Index at file start for fast seeking.</td></tr>
+      <tr><td><code>-vsync cfr</code></td><td>Force constant framerate.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout tip">
+    <strong>Color-critical tasks</strong> (wire routing, colored grasping): use <code>-pix_fmt yuv444p -profile:v high444</code>. Test hardware decode support first.
+  </div>
+</div>
+
+<!-- Quick ref -->
+<div class="section">
+  <h2>Quick Reference</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Uncompressed 1080p30 (rgb24)</td><td>~1.49 Gbps</td></tr>
+      <tr><td>H.264 CRF 18 1080p30</td><td>~10&ndash;20 Mbps</td></tr>
+      <tr><td>H.264 compression ratio (CRF 18)</td><td>~50&ndash;100:1</td></tr>
+      <tr><td>H.265 savings vs H.264</td><td>30&ndash;50%</td></tr>
+      <tr><td>NVDEC H.264 1080p (RTX 3090)</td><td>~1500 fps</td></tr>
+      <tr><td>I-frame vs P-frame size</td><td>~5&ndash;10x larger</td></tr>
+      <tr><td>I-frame vs B-frame size</td><td>~10&ndash;20x larger</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+</div>
+
+<footer>
+  <p><a href="index.html">frameforge</a> &mdash; video decoding utilities for robotics foundation model data pipelines</p>
+</footer>
+
+<script>
+// GOP Animation
+const gopPattern = [
+  {t:'I',l:'I0'},{t:'B',l:'B1'},{t:'B',l:'B2'},{t:'P',l:'P3'},
+  {t:'B',l:'B4'},{t:'B',l:'B5'},{t:'P',l:'P6'},{t:'B',l:'B7'},
+  {t:'B',l:'B8'},{t:'P',l:'P9'},{t:'B',l:'B10'},{t:'B',l:'B11'},
+  {t:'I',l:'I12'},{t:'B',l:'B13'},{t:'B',l:'B14'},{t:'P',l:'P15'},
+];
+const gopMeta = {
+  I:{title:'I-Frame (Keyframe)',desc:'Self-contained. Compressed spatially like a JPEG. Only entry point for seeking. 5-10x larger than P-frames.',size:'~50-150 KB',decode:'Can be decoded alone'},
+  P:{title:'P-Frame (Predicted)',desc:'Motion vectors + residual from previous I or P frames. Cannot decode without references. 30-50% of I-frame size.',size:'~10-50 KB',decode:'Needs previous I/P frames'},
+  B:{title:'B-Frame (Bi-Predictive)',desc:'References past AND future frames. Smallest type. Causes decode order != display order — the source of most ML seeking bugs.',size:'~5-25 KB',decode:'Needs past + future references'},
+};
+const gc = document.getElementById('gopFrames');
+const gd = document.getElementById('gopDetail');
+gopPattern.forEach((f,i)=>{
+  const d = document.createElement('div');
+  d.className = `gop-frame ${f.t.toLowerCase()}`;
+  d.innerHTML = `<div class="bar"></div><div class="lbl">${f.l}</div>`;
+  d.onclick = ()=>{
+    document.querySelectorAll('.gop-frame').forEach(e=>e.classList.remove('active'));
+    d.classList.add('active');
+    const m = gopMeta[f.t];
+    gd.innerHTML = `<strong style="color:var(--text-bright)">${m.title}</strong> &mdash; ${m.desc}<br><span style="color:var(--text-dim)">Size: ${m.size} | ${m.decode}</span>`;
+  };
+  gc.appendChild(d);
+});
+
+// Seek
+const st = document.getElementById('seekTrack');
+const sn = document.getElementById('seekNeedle');
+const sr = document.getElementById('seekResult');
+function buildTrack(g){
+  st.querySelectorAll('.seg').forEach(e=>e.remove());
+  const n = Math.ceil(300/g);
+  for(let i=0;i<n;i++){
+    const s = document.createElement('div');
+    s.className='seg'; s.textContent=i*g;
+    s.dataset.start=i*g; s.dataset.end=Math.min((i+1)*g,300);
+    st.insertBefore(s,sn);
+  }
+}
+function doSeek(g){
+  document.querySelectorAll('.seek-btns button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  buildTrack(g);
+  const target = Math.floor(Math.random()*280)+10;
+  sn.style.left = (target/300*100)+'%';
+  const segs = st.querySelectorAll('.seg');
+  let decoded = 0;
+  segs.forEach(s=>{
+    s.classList.remove('key','dec');
+    const a=+s.dataset.start, b=+s.dataset.end;
+    if(target>=a && target<b){ s.classList.add('key'); decoded=target-a+1; }
+  });
+  const ms = (decoded/500*1000).toFixed(1);
+  const col = decoded>30?'var(--red)':decoded>5?'var(--accent)':'var(--teal)';
+  sr.innerHTML = `Frame <strong>${target}</strong> &mdash; decode <strong style="color:${col}">${decoded}</strong> frames (${ms}ms)`;
+}
+buildTrack(30);
+
+// CRF
+const crfData = [
+  {v:0,q:'Lossless',s:'50-150 GB',note:'Archival of irreplaceable data only.'},
+  {v:15,q:'Perceptually lossless',s:'5-15 GB',note:'Overkill for most ML. Use for master copies.'},
+  {v:18,q:'Near-lossless',s:'2-8 GB',note:'Recommended for research datasets. Best quality/size tradeoff.'},
+  {v:23,q:'Good',s:'1-3 GB',note:'Fine for navigation or large-object manipulation.'},
+  {v:28,q:'Moderate',s:'0.3-1.5 GB',note:'Visible artifacts. May corrupt fine-grained signal.'},
+  {v:35,q:'Low',s:'<500 MB',note:'Significant artifacts. Not recommended for training.'},
+];
+const cg = document.getElementById('crfGrid');
+const ci = document.getElementById('crfInfo');
+crfData.forEach(d=>{
+  const c = document.createElement('div');
+  c.className='crf-card';
+  c.innerHTML=`<div class="v">${d.v}</div><div class="q">${d.q}</div><div class="s">${d.s}/hr</div>`;
+  c.onclick=()=>{
+    document.querySelectorAll('.crf-card').forEach(e=>e.classList.remove('sel'));
+    c.classList.add('sel');
+    ci.innerHTML=`<strong style="color:var(--text-bright)">CRF ${d.v} &mdash; ${d.q}</strong><br>${d.s} per hour of 1080p30 H.264<br><br>${d.note}`;
+  };
+  cg.appendChild(c);
+});
+
+// Chroma
+const cr = document.getElementById('chromaRow');
+[{n:'4:4:4',sub:'Full color',r:'3 bytes/px',g:()=>{const a=[];for(let i=0;i<64;i++)a.push(1);return a}},
+ {n:'4:2:2',sub:'Half horizontal',r:'2 bytes/px',g:()=>{const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(c%2===0?1:0.4);return a}},
+ {n:'4:2:0',sub:'Quarter (default)',r:'1.5 bytes/px',g:()=>{const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push((r%2===0&&c%2===0)?1:0.25);return a}},
+].forEach(m=>{
+  const d=document.createElement('div');d.className='chroma-col';
+  const g=document.createElement('div');g.className='px-grid';
+  m.g().forEach(o=>{const p=document.createElement('div');p.className='px';p.style.background=`rgba(226,164,66,${o})`;g.appendChild(p)});
+  d.innerHTML=`<h5>${m.n}</h5>`;d.appendChild(g);d.innerHTML+=`<div class="meta">${m.sub}<br>${m.r}</div>`;
+  cr.appendChild(d);
+});
+
+// Pipeline
+const steps = [
+  {n:1,t:'Demuxing',d:'Container parser extracts compressed packets (NAL units) using the index. Outputs bitstream with PTS/DTS timestamps.'},
+  {n:2,t:'NAL Parsing',d:'Separates parameter sets (SPS/PPS) from slice data. Identifies frame boundaries and types.'},
+  {n:3,t:'Entropy Decode',d:'CABAC/CAVLC decoding recovers quantized coefficients and motion vectors. Sequential, hard to parallelize.'},
+  {n:4,t:'Inverse Quantization',d:'Multiplies coefficients by QP step size. Information lost during encoding is gone forever.'},
+  {n:5,t:'Inverse Transform',d:'Inverse DCT converts frequency-domain back to spatial-domain residuals.'},
+  {n:6,t:'Motion Compensation',d:'Fetches predicted block from reference frame buffer via motion vectors. Adds residual. Sub-pixel interpolation.'},
+  {n:7,t:'In-Loop Filtering',d:'Deblocking smooths block boundaries. H.265 adds SAO (Sample Adaptive Offset). Output goes to Decoded Picture Buffer.'},
+  {n:8,t:'Reordering',d:'Frames in decode order (DTS) reordered to presentation order (PTS). B-frames cause these to differ.'},
+  {n:9,t:'Color Conversion',d:'Converts from yuv420p/nv12 to rgb24/tensors. CPU (libswscale) or GPU. Where BGR/RGB and BT.601/709 bugs happen.'},
+];
+const pl = document.getElementById('pipeline');
+steps.forEach((s,i)=>{
+  if(i>0){const c=document.createElement('div');c.className='pipe-conn';pl.appendChild(c)}
+  const d=document.createElement('div');d.className='pipe-step';
+  d.innerHTML=`<div class="pipe-n">${s.n}</div><div><div class="pipe-title">${s.t}</div><div class="pipe-desc">${s.d}</div></div>`;
+  d.onclick=()=>{const was=d.classList.contains('open');document.querySelectorAll('.pipe-step').forEach(e=>e.classList.remove('open'));if(!was)d.classList.add('open')};
+  pl.appendChild(d);
+});
+</script>
+</body>
+</html>
