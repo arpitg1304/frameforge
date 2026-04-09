@@ -1,5 +1,7 @@
 # frameforge
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/arpitg1304/frameforge/blob/main/notebooks/getting_started_colab.ipynb)
+
 Train VLAs directly from compressed video. No frame extraction, no storage blowup, no fork-safety crashes.
 
 ```python
