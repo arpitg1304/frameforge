@@ -1,5 +1,6 @@
 # frameforge
 
+[![CI](https://github.com/arpitg1304/frameforge/actions/workflows/ci.yml/badge.svg)](https://github.com/arpitg1304/frameforge/actions/workflows/ci.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/arpitg1304/frameforge/blob/main/notebooks/getting_started_colab.ipynb)
 
 Train VLAs directly from compressed video. No frame extraction, no storage blowup, no fork-safety crashes.
@@ -121,6 +122,38 @@ print(f"{index.num_keyframes} keyframes, avg GOP {index.avg_gop_size:.0f}")
 print(f"Frame 500 needs {index.frames_to_decode(500)} decodes from nearest keyframe")
 ```
 
+### Data packing — maximum training throughput
+
+Pre-pack episode clips into sequential shard videos. Eliminates random seeks during training (4-20x faster).
+
+```python
+from frameforge.packing import PackConfig, pack_shards, ShardStreamDataset
+
+# Offline: pack 50K episodes into training shards (one-time)
+config = PackConfig(
+    episode_paths=sorted(Path("data/").glob("*.mp4")),
+    output_dir="shards/v1/",
+    clip_length=16,
+    clips_per_shard=1000,
+    codec="h264",             # also: "mjpeg", "ffv1"
+    resolution=(480, 360),    # downscale at pack time
+    seed=42,                  # reproducible
+)
+result = pack_shards(config)
+# Packed 150,000 clips into 150 shards (12.3 GB) in 847s
+
+# Training: sequential reads, no seeking, GPU stays fed
+dataset = ShardStreamDataset("shards/v1/", prefetch=True)
+loader = DataLoader(dataset, batch_size=256, num_workers=4)
+```
+
+```bash
+# CLI
+python -m frameforge.packing pack --episodes data/ --output shards/v1/ --clip-length 16
+python -m frameforge.packing info shards/v1/
+python -m frameforge.packing verify shards/v1/
+```
+
 ### Run benchmarks
 
 ```bash
@@ -215,6 +248,7 @@ frameforge/
   sampling/       # Temporal samplers + multi-camera sync
   dataloader/     # PyTorch Dataset/IterableDataset wrappers
   benchmark/      # Runner, configs, HTML report generator
+  packing/        # Shard packing, ShardDataset, ShardStreamDataset
 notebooks/
   getting_started.ipynb  # Interactive walkthrough with widgets
 docs/

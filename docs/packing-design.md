@@ -429,14 +429,17 @@ loader = DataLoader(dataset, batch_size=256, num_workers=4)
 
 ---
 
-## Open Questions
+## Resolved Design Decisions
 
-1. **Should shards support random access at all?** If each clip starts on a keyframe (GOP=1), you *can* seek to any clip. This enables map-style Dataset access (not just IterableDataset). Worth supporting for debugging and evaluation.
+1. **Random access**: Yes. Since shards use GOP=1, any clip can be seeked to directly. Support both `ShardDataset` (map-style, for debugging/eval) and `ShardStreamDataset` (iterable, for max training throughput).
 
-2. **Compression format**: H.264 all-intra is simple. But JPEG-in-MKV (Motion JPEG) or FFV1 (lossless intra-only) might be better for all-intra encoding. H.264 intra mode is not as efficient as JPEG for single frames. Need benchmarks.
+2. **Codec support**: H.264 all-intra as default. Also support MJPEG (best per-frame efficiency, widest decode support) and FFV1 (lossless intra-only, good for archival). Let the user choose via `--codec`.
 
-3. **Frame-level vs clip-level granularity**: Should each clip be a separate seek target? Or should we just write frames sequentially and use the manifest to compute byte offsets? The former is simpler; the latter is more flexible for variable-length clips.
+3. **Cloud shard sizing**: Target 100-500 MB per shard for efficient S3/GCS range requests. `max_shard_size_mb` parameter caps file size. Default: `clips_per_shard=1000` which lands in this range for most resolutions.
 
-4. **Memory-mapped reading**: For maximum speed, could we memory-map the shard file and decode frames directly from mapped memory? This bypasses file I/O entirely. PyAV supports reading from bytes buffers.
+4. **Action labels**: Video-only. frameforge packs clips and writes a manifest with episode + frame range keys. The user's code loads actions from their own store (HDF5/Parquet/Zarr) using those keys.
 
-5. **Cloud storage**: If shards are on S3/GCS, sequential reads work well (single GET with range). But shard files should be sized for efficient cloud transfers (100-500 MB each). Too small = too many requests. Too large = slow startup.
+## Future Considerations
+
+- **Memory-mapped reading**: mmap shard files and decode from mapped memory to bypass file I/O. PyAV supports reading from byte buffers.
+- **Streaming from cloud**: Chunked HTTP range requests to read shards directly from S3/GCS without full download.

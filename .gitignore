@@ -23,6 +23,7 @@ Thumbs.db
 *.mp4
 sample.mp4
 _videos/
+_packing_demo/
 
 # Frame index cache
 .frameforge_cache/
@@ -30,5 +31,13 @@ _videos/
 # Notebook checkpoints
 .ipynb_checkpoints/
 
+# Notebook temp outputs
+notebooks/_videos/
+notebooks/_packing_demo/
+
 # Benchmark results (regenerated)
 benchmarks/results/*.json
+
+# Coverage
+htmlcov/
+.coverage

@@ -506,6 +506,39 @@ synced = <span class="fn">sync_readers_by_timestamp</span>(
 <span class="cmt"># synced["overhead"] -> (4, H, W, C)</span></pre>
     </div>
   </div>
+
+  <div class="example-block">
+    <div class="code-section">
+      <div class="code-desc">
+        <span class="tag tag-amber">Packing</span>
+        <h3>Pre-pack shards for max throughput</h3>
+        <p>
+          Pack episode clips into sequential shard videos offline. Training reads sequentially &mdash;
+          no seeking, decoder stays warm, GPU stays fed. 4-20x faster than random access.
+        </p>
+      </div>
+      <pre><span class="kw">from</span> frameforge.packing <span class="kw">import</span> (
+    <span class="fn">PackConfig</span>, <span class="fn">pack_shards</span>,
+    <span class="fn">ShardStreamDataset</span>,
+)
+
+<span class="cmt"># Offline: pack episodes into shards</span>
+config = <span class="fn">PackConfig</span>(
+    episode_paths=all_episodes,
+    output_dir=<span class="str">"shards/v1/"</span>,
+    clip_length=<span class="num">16</span>,
+    clips_per_shard=<span class="num">1000</span>,
+    codec=<span class="str">"h264"</span>,
+    seed=<span class="num">42</span>,
+)
+<span class="fn">pack_shards</span>(config)
+
+<span class="cmt"># Training: sequential reads, max throughput</span>
+dataset = <span class="fn">ShardStreamDataset</span>(
+    <span class="str">"shards/v1/"</span>, prefetch=<span class="num">True</span>)
+loader = <span class="fn">DataLoader</span>(dataset, batch_size=<span class="num">256</span>)</pre>
+    </div>
+  </div>
 </section>
 
 <hr class="divider">
